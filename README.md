@@ -19,9 +19,15 @@ This simple board provides only MIDI IN to the DS-2. The schematics comes with t
 What you **can do** with this board?
 * Receive MIDI NOTE ON/OFF messages
 
-**NOTE:** with this board, the DS-2 keyboard will be **disabled**
+**NOTE:** with this board, the DS-2 keyboard will be **disabled**.
 
-### DS-2 MIDI FULL (**NOT YET IN THE REPO**, under development)
+In order to use this variant, please make sure to comment the line
+```C
+#define DS2_FULL_VARIANT
+```
+in **config.h**, and refer to the schematic and board *P-431_MIDI_IN_BARE* and *P-431_MIDI_IN_BARE*.
+
+### DS-2 MIDI FULL (under development)
 This advanced board provides MIDI IN and OUT to the DS-2. The schematics comes with two microcontroller footprints: one for the Arduino Nano and one for the bare ATMega328 chip.
 
 What you **can do** with this board?
@@ -29,7 +35,13 @@ What you **can do** with this board?
 * Send MIDI NOTE ON/OFF from DS-2 keyboard
 * Send and Receive MIDI pitch shift messages (TO BE IMPLEMENTED)
 
-**NOTE:** with this board, the DS-2 keyboard are still **usable**
+**NOTE:** with this board, the DS-2 keyboard are still **usable**.
+
+In order to use this variant, please UNcomment the line
+```C
+#define DS2_FULL_VARIANT
+```
+in **config.h**, and refer to the schematic and board *P-431_MIDI_FULL*.
 
 ## DISCLAIMER
 This is not a commercial work. USE IT AT YOUR OWN RISK. I'm not responsible of any damage to your Arduino/DS-2 or your person.
