@@ -25,7 +25,7 @@ In order to use this variant, please make sure to comment the line
 ```C
 #define DS2_FULL_VARIANT
 ```
-in **config.h**, and refer to the schematic and board *P-431_MIDI_IN_BARE* and *P-431_MIDI_IN_BARE*.
+in **config.h**, and refer to the schematic and board *P-431_MIDI_IN_NANO* or *P-431_MIDI_IN_BARE* depending on if you use Arduino Nano or ATMega328 bare chip.
 
 ### DS-2 MIDI FULL (under development)
 This advanced board provides MIDI IN and OUT to the DS-2. The schematics comes with two microcontroller footprints: one for the Arduino Nano and one for the bare ATMega328 chip.
@@ -44,4 +44,4 @@ In order to use this variant, please UNcomment the line
 in **config.h**, and refer to the schematic and board *P-431_MIDI_FULL*.
 
 ## DISCLAIMER
-This is not a commercial work. USE IT AT YOUR OWN RISK. I'm not responsible of any damage to your Arduino/DS-2 or your person.
+This is not a commercial work. USE IT AT YOUR OWN RISK. I'm not responsible of any damage to your Arduino / DS-2 or your person.
