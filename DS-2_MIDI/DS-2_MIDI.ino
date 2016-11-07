@@ -5,14 +5,20 @@
 
 #include "config.h"
 #include "noteList.h"
+#include "midiDefs.h"
 
 noteList_t midiNotes;
 
-byte incomingByte;
+// Fot the MIDI FSM
+enum status_e { IDLE, WAIT_NOTE_ON, WAIT_NOTE_OFF, WAIT_VELOCITY, WAIT_CC, WAIT_PITCH };
+status_e status = IDLE;
+
+byte midiByte;
+byte midiChannel;
 byte note;
 byte velocity;
 
-int action=2; //0 =note off ; 1=note on ; 2= nada
+playMode_e mode = PLAY_MODE_MIDI;
 
 void playNote(byte note, byte velocity){
 
@@ -52,7 +58,7 @@ void setup() {
   Serial.begin( MIDI_RATE );
 
   // Initialize the note list
-  initMidiNoteList( &midiNotes, PLAY_MODE_MIDI );
+  initMidiNoteList( &midiNotes, mode );
 }
 
 void sequencer( noteList_t *list ){
@@ -62,38 +68,57 @@ void sequencer( noteList_t *list ){
 }
 
 void loop() {
- if (Serial.available() > 0) {
+  if (Serial.available() > 0) {
     // read the incoming byte:
-    incomingByte = Serial.read();
+    midiByte = Serial.read();
 
-    // wait for as status-byte, channel 1, note on or off
-    if (incomingByte== 144){ // note on message starting starting
-      action=1;
-    }else if (incomingByte== 128){ // note off message starting
-      action=0;
-    }else if (incomingByte== 208){ // aftertouch message starting
-       //not implemented yet
-    }else if (incomingByte== 160){ // polypressure message starting
-       //not implemented yet
-    }else if ( (action==0)&&(note==0) ){ // if we received a "note off", we wait for which note (databyte)
-      note=incomingByte;
-      //playNote(note, 0);
+    if (midiByte & 0x80){
+      // Just in case I've missed some byte
+      status = IDLE;
+    }
+
+    // MIDI messages FSM
+    if (status == IDLE){
+      if (midiByte == MIDI_NOTE_ON){
+        midiChannel = midiByte & 0x0F;
+        status = WAIT_NOTE_ON;
+      } else if (midiByte == MIDI_NOTE_OFF){
+        midiChannel = midiByte & 0x0F;
+        status = WAIT_NOTE_OFF;
+      } else if (midiByte == MIDI_CONTROL_CHANGE){
+        midiChannel = midiByte & 0x0F;
+        status = WAIT_CC;
+      } else if (midiByte == MIDI_PITCH_BEND){
+        midiChannel = midiByte & 0x0F;
+        status = WAIT_PITCH;
+      } else if ((midiByte == MIDI_ALL_NOTE_OFF) || (midiByte == MIDI_ALL_SOUND_OFF)){
+        initMidiNoteList( &midiNotes, mode );
+        midiChannel = midiByte & 0x0F;
+        status = IDLE;
+      }
+    } else if (status == WAIT_NOTE_ON){
+      note = midiByte;
+      status = WAIT_VELOCITY;
+    } else if (status == WAIT_NOTE_OFF){
+      note = midiByte;
       popNote(&midiNotes, note);
-      note=0;
-      velocity=0;
-      action=2;
-    }else if ( (action==1)&&(note==0) ){ // if we received a "note on", we wait for the note (databyte)
-      note=incomingByte;
-    }else if ( (action==1)&&(note!=0) ){ // ...and then the velocity
-      velocity=incomingByte;
-      //playNote(note, velocity);
-      pushNote(&midiNotes, note, velocity);
-      note=0;
-      velocity=0;
-      action=0;
-    }else{
-      //nada
+      status = IDLE;
+    } else if (status == WAIT_VELOCITY){
+      velocity = midiByte;
+      if (velocity != 0){
+        pushNote(&midiNotes, note, velocity);
+      } else {
+        popNote(&midiNotes, note);
+      }
+      status = IDLE;
+    } else if (status == WAIT_CC){
+      // TODO
+      status = IDLE;
+    } else if (status == WAIT_PITCH){
+      // TODO
+      status = IDLE;
     }
   }
+
   sequencer( &midiNotes );
 }

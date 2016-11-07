@@ -8,7 +8,13 @@
 
 // General Config
 //#define DS2_FULL_VARIANT // Uncomment to use FULL variant instead of NANO
+
+// Note priority [LAST|HIGHER]
 #define PLAY_MODE_MIDI HIGHER
+
+// Default MIDI channel
+#define DEFAULT_MIDI_CH 0
+
 
 // Configure the ATMega328 pin names
 
