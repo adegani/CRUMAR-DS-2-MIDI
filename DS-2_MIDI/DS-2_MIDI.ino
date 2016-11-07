@@ -50,6 +50,7 @@ void setup() {
   pinMode( DS2_8o,       OUTPUT );
   pinMode( DS2_16o,      OUTPUT );
   pinMode( DS2_32o,      OUTPUT );
+  pinMode( MIDI_LED,     OUTPUT );
 
   // Default GATE for DS-2 is HIGH
   digitalWrite( DS2_GATE_NEG, HIGH ); // DS-2 has a NOT-GATE
@@ -69,6 +70,7 @@ void sequencer( noteList_t *list ){
 
 void loop() {
   if (Serial.available() > 0) {
+    digitalWrite( MIDI_LED, HIGH );
     // read the incoming byte:
     midiByte = Serial.read();
 
@@ -79,19 +81,20 @@ void loop() {
 
     // MIDI messages FSM
     if (status == IDLE){
-      if (midiByte == MIDI_NOTE_ON){
+      if ( midiByte == (MIDI_NOTE_ON | DEFAULT_MIDI_CH) ){
         midiChannel = midiByte & 0x0F;
         status = WAIT_NOTE_ON;
-      } else if (midiByte == MIDI_NOTE_OFF){
+      } else if ( midiByte == (MIDI_NOTE_OFF | DEFAULT_MIDI_CH) ){
         midiChannel = midiByte & 0x0F;
         status = WAIT_NOTE_OFF;
-      } else if (midiByte == MIDI_CONTROL_CHANGE){
+      } else if (midiByte == (MIDI_CONTROL_CHANGE | DEFAULT_MIDI_CH) ){
         midiChannel = midiByte & 0x0F;
         status = WAIT_CC;
-      } else if (midiByte == MIDI_PITCH_BEND){
+      } else if ( midiByte == (MIDI_PITCH_BEND | DEFAULT_MIDI_CH) ){
         midiChannel = midiByte & 0x0F;
         status = WAIT_PITCH;
-      } else if ((midiByte == MIDI_ALL_NOTE_OFF) || (midiByte == MIDI_ALL_SOUND_OFF)){
+      } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | DEFAULT_MIDI_CH)) ||
+                 (midiByte == (MIDI_ALL_SOUND_OFF | DEFAULT_MIDI_CH)) ){
         initMidiNoteList( &midiNotes, mode );
         midiChannel = midiByte & 0x0F;
         status = IDLE;
@@ -118,6 +121,7 @@ void loop() {
       // TODO
       status = IDLE;
     }
+    digitalWrite( MIDI_LED, LOW );
   }
 
   sequencer( &midiNotes );
