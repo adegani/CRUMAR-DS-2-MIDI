@@ -12,7 +12,7 @@
 #define NULL 0
 
 // Note priority ("ALL" works only for the MIDI OUT)
-enum notePriority { HIGHER, LAST, ALL } notePriority_t;
+enum notePriority { HIGHER, LAST, ALL };
 
 // Note struct
 typedef struct note {
@@ -25,11 +25,11 @@ typedef struct note {
 typedef struct noteList {
   note_t          midiNotes[ MAX_NOTES ];
   uint8_t         lastMidiNote;
-  notePriority_t  priority;
+  notePriority  priority;
 } noteList_t;
 
 // Init the note list
-void initMidiNoteList( noteList_t *list, notePriority_t priority ){
+void initMidiNoteList( noteList_t *list, notePriority priority ){
   list->priority = priority;
   list->lastMidiNote = 0;
   for (uint8_t i = 0; i < MAX_NOTES; i++ ){
