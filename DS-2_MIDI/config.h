@@ -1,5 +1,5 @@
-/* pinConfig.h
- *  Define Arduino pin names
+/* config.h
+ *  Config and Arduino pin names
  *  Author: Alessio Degani, 2016 <alessio.degani@gmail.com>
  */
 
@@ -14,7 +14,6 @@
 
 // Default MIDI channel
 #define DEFAULT_MIDI_CH 0
-
 
 // Configure the ATMega328 pin names
 
@@ -32,7 +31,7 @@
 #define MIDI_OUT      0
 #define MIDI_IN       1
 
-// ----- NOT USED IN NANO VERSION -----
+// ----- NOT USED IN DS-2 MIDI IN only VERSION -----
 
 // COUNTER
 #define COUNT_UP_NEG  9

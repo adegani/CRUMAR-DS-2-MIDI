@@ -11,31 +11,35 @@
 #define MAX_NOTES 10
 #define NULL 0
 
-enum playMode_e{ HIGHER, LAST }; 
+// Note priority ("ALL" works only for the MIDI OUT)
+enum notePriority { HIGHER, LAST, ALL } notePriority_t;
 
+// Note struct
 typedef struct note {
     uint8_t noteNumber;
     uint8_t velocity;
     //struct note * next;
 } note_t;
 
+// Note List Struct
 typedef struct noteList {
-  note_t      midiNotes[ MAX_NOTES ];
-  uint8_t     lastMidiNote;
-  playMode_e  mode;
+  note_t          midiNotes[ MAX_NOTES ];
+  uint8_t         lastMidiNote;
+  notePriority_t  priority;
 } noteList_t;
 
-
-void initMidiNoteList( noteList_t *list, playMode_e mode ){
-  list->mode = mode;
+// Init the note list
+void initMidiNoteList( noteList_t *list, notePriority_t priority ){
+  list->priority = priority;
   list->lastMidiNote = 0;
   for (uint8_t i = 0; i < MAX_NOTES; i++ ){
     list->midiNotes[i].noteNumber = 0;
     list->midiNotes[i].velocity = 0;
     //list->next = NULL;
-  }  
+  }
 }
 
+// Push a note to the list (if not already in)
 void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
   for (uint8_t i = 0; i < MAX_NOTES; i++ ){
     if ( (list->midiNotes[i].velocity == 0) || (list->midiNotes[i].noteNumber == noteNumber) ){
@@ -44,9 +48,10 @@ void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
       list->lastMidiNote = i;
       return;
     }
-  }  
+  }
 }
 
+// Pop a note from the list (if exist)
 void popNote(noteList_t *list, uint8_t noteNumber) {
   uint8_t deletedNote = 0;
   for (uint8_t i = 0; i < MAX_NOTES; i++ ){
@@ -67,9 +72,11 @@ void popNote(noteList_t *list, uint8_t noteNumber) {
   }
 }
 
+// Select the note to be played based on priority
+// NOTE: The DS-2 is MONOPHONIC!
 uint8_t midiNoteToPlay(noteList_t *list){
   uint8_t higherNote = 0;
-  if (list->mode == LAST){
+  if (list->priority == LAST){
     return list->lastMidiNote;
   } else {
     for (uint8_t i = 0; i < MAX_NOTES; i++ ){
@@ -77,7 +84,7 @@ uint8_t midiNoteToPlay(noteList_t *list){
         higherNote = i;
       }
     }
-  } 
+  }
   return higherNote;
 }
 

@@ -7,18 +7,18 @@
 #include "noteList.h"
 #include "midiDefs.h"
 
-noteList_t midiNotes;
-
 // Fot the MIDI FSM
 enum status_e { IDLE, WAIT_NOTE_ON, WAIT_NOTE_OFF, WAIT_VELOCITY, WAIT_CC, WAIT_PITCH };
 status_e status = IDLE;
 
+byte midiChannel = DEFAULT_MIDI_CH;
+
+notePriority priority = PLAY_MODE_MIDI;
+noteList_t midiNotes;
+
 byte midiByte;
-byte midiChannel;
 byte note;
 byte velocity;
-
-playMode_e mode = PLAY_MODE_MIDI;
 
 void playNote(byte note, byte velocity){
 
@@ -59,18 +59,31 @@ void setup() {
   Serial.begin( MIDI_RATE );
 
   // Initialize the note list
-  initMidiNoteList( &midiNotes, mode );
+  initMidiNoteList( &midiNotes, priority );
 }
 
 void sequencer( noteList_t *list ){
   // If there are note to play or send via MIDI, this is the right moment to do that!
   byte noteIdx = midiNoteToPlay(list);
   playNote( list->midiNotes[noteIdx].noteNumber, list->midiNotes[noteIdx].velocity );
+
+  #ifdef DS2_FULL_VARIANT
+  // TODO: if FULL board, sequence the MIDI OUT notes
+  #endif
 }
 
 void loop() {
+  #ifdef DS2_FULL_VARIANT
+  // TODO: if FULL board, read the DS-2 keyboard
+  #endif
+
+
+
   if (Serial.available() > 0) {
+
+    // MIDI LED actovity ON
     digitalWrite( MIDI_LED, HIGH );
+
     // read the incoming byte:
     midiByte = Serial.read();
 
@@ -81,22 +94,17 @@ void loop() {
 
     // MIDI messages FSM
     if (status == IDLE){
-      if ( midiByte == (MIDI_NOTE_ON | DEFAULT_MIDI_CH) ){
-        midiChannel = midiByte & 0x0F;
+      if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
         status = WAIT_NOTE_ON;
-      } else if ( midiByte == (MIDI_NOTE_OFF | DEFAULT_MIDI_CH) ){
-        midiChannel = midiByte & 0x0F;
+      } else if ( midiByte == (MIDI_NOTE_OFF | midiChannel) ){
         status = WAIT_NOTE_OFF;
-      } else if (midiByte == (MIDI_CONTROL_CHANGE | DEFAULT_MIDI_CH) ){
-        midiChannel = midiByte & 0x0F;
+      } else if (midiByte == (MIDI_CONTROL_CHANGE | midiChannel) ){
         status = WAIT_CC;
-      } else if ( midiByte == (MIDI_PITCH_BEND | DEFAULT_MIDI_CH) ){
-        midiChannel = midiByte & 0x0F;
+      } else if ( midiByte == (MIDI_PITCH_BEND | midiChannel) ){
         status = WAIT_PITCH;
-      } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | DEFAULT_MIDI_CH)) ||
-                 (midiByte == (MIDI_ALL_SOUND_OFF | DEFAULT_MIDI_CH)) ){
-        initMidiNoteList( &midiNotes, mode );
-        midiChannel = midiByte & 0x0F;
+      } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | midiChannel)) ||
+                 (midiByte == (MIDI_ALL_SOUND_OFF | midiChannel)) ){
+        initMidiNoteList( &midiNotes, priority );
         status = IDLE;
       }
     } else if (status == WAIT_NOTE_ON){
@@ -121,8 +129,11 @@ void loop() {
       // TODO
       status = IDLE;
     }
+
+    // MIDI LED actovity OFF
     digitalWrite( MIDI_LED, LOW );
   }
 
+  // Sequence the note received
   sequencer( &midiNotes );
 }
