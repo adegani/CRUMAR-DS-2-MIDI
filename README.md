@@ -45,3 +45,12 @@ in **config.h**, and refer to the schematic and board *P-431_MIDI_FULL*.
 
 ## DISCLAIMER
 This is not a commercial work. USE IT AT YOUR OWN RISK. I'm not responsible of any damage to your Arduino / DS-2 or your person.
+
+### Uploading DS-2 sketch using Arduino
+1. Upload Arduino ISP sketch to your Arduino
+2. Open DS-2 Sketch
+3. Select board -> Arduino Duemilanove or Diecimila with processor ATmega328
+4. Select Programmer -> Arduino as ISP 
+5. Press Upload using programmer (Ctrl+Shift+U)
+
+If you receive a signature error, modify /home/axel/Software/arduino/hardware/tools/avr/etc/avrdude.conf, section m328p, modify the signature 0x1e 0x95 0x0F with 0x1e 0x95 0x14
