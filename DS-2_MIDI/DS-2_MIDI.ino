@@ -8,8 +8,8 @@
 #include "midiDefs.h"
 
 // Fot the MIDI FSM
-enum status_e { IDLE, WAIT_NOTE_ON, WAIT_NOTE_OFF, WAIT_VELOCITY, WAIT_CC, WAIT_PITCH };
-status_e status = IDLE;
+enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_ON, MIDI_WAIT_NOTE_OFF, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_PITCH };
+status_e status = MIDI_IDLE;
 
 byte midiChannel = DEFAULT_MIDI_CH;
 
@@ -20,11 +20,16 @@ byte midiByte;
 byte note;
 byte velocity;
 
-void playNote(byte note, byte velocity){
+// MIDI led activity, led_status is for pesistence of the led, otherwise, the led will stay on too few
+bool          midi_led_status         = 0;
+unsigned int  midi_led_duration_loops = 3;
+unsigned int  midi_led_timer          = 0;
+
+void playNote( byte note, byte velocity ){
 
   // A note off -> close the gate
-  if (velocity == 0) {
-    digitalWrite(DS2_GATE_NEG, HIGH);
+  if ( velocity == 0 ) {
+    digitalWrite( DS2_GATE_NEG, HIGH );
     return;
   }
 
@@ -36,7 +41,7 @@ void playNote(byte note, byte velocity){
     ( (note & 4)  == 4 )  ? digitalWrite(DS2_4o, HIGH): digitalWrite(DS2_4o, LOW);
     ( (note & 2)  == 2 )  ? digitalWrite(DS2_2o, HIGH): digitalWrite(DS2_2o, LOW);
     ( (note & 1)  == 1 )  ? digitalWrite(DS2_1o, HIGH): digitalWrite(DS2_1o, LOW);
-    digitalWrite(DS2_GATE_NEG, LOW);
+    digitalWrite( DS2_GATE_NEG, LOW );
   }
 
 }
@@ -77,63 +82,73 @@ void loop() {
   // TODO: if FULL board, read the DS-2 keyboard
   #endif
 
+  // MIDI activity led mini FSM
+  if ( midi_led_status == 1 ){
+    midi_led_timer++;
+    if ( midi_led_timer > midi_led_duration_loops ){
+      midi_led_status = 0;
+      midi_led_timer  = 0;
+    }
+  }
 
 
   if (Serial.available() > 0) {
-
-    // MIDI LED actovity ON
-    digitalWrite( MIDI_LED, HIGH );
-
+    // A MIDI message is arrived
+    
+    // start MIDI led activity mini FSM
+    midi_led_timer  = 0;
+    midi_led_status = 1;
+    
     // read the incoming byte:
     midiByte = Serial.read();
 
     if (midiByte & 0x80){
       // Just in case I've missed some byte
-      status = IDLE;
+      status = MIDI_IDLE;
     }
 
     // MIDI messages FSM
-    if (status == IDLE){
+    if ( status == MIDI_IDLE ){
       if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
-        status = WAIT_NOTE_ON;
+        status = MIDI_WAIT_NOTE_ON;
       } else if ( midiByte == (MIDI_NOTE_OFF | midiChannel) ){
-        status = WAIT_NOTE_OFF;
+        status = MIDI_WAIT_NOTE_OFF;
       } else if (midiByte == (MIDI_CONTROL_CHANGE | midiChannel) ){
-        status = WAIT_CC;
+        status = MIDI_WAIT_CC;
       } else if ( midiByte == (MIDI_PITCH_BEND | midiChannel) ){
-        status = WAIT_PITCH;
+        status = MIDI_WAIT_PITCH;
       } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | midiChannel)) ||
                  (midiByte == (MIDI_ALL_SOUND_OFF | midiChannel)) ){
         initMidiNoteList( &midiNotes, priority );
-        status = IDLE;
+        status = MIDI_IDLE;
       }
-    } else if (status == WAIT_NOTE_ON){
+    } else if ( status == MIDI_WAIT_NOTE_ON ){
       note = midiByte;
-      status = WAIT_VELOCITY;
-    } else if (status == WAIT_NOTE_OFF){
+      status = MIDI_WAIT_VELOCITY;
+    } else if ( status == MIDI_WAIT_NOTE_OFF ){
       note = midiByte;
-      popNote(&midiNotes, note);
-      status = IDLE;
-    } else if (status == WAIT_VELOCITY){
+      popNote( &midiNotes, note );
+      status = MIDI_IDLE;
+    } else if ( status == MIDI_WAIT_VELOCITY ){
       velocity = midiByte;
-      if (velocity != 0){
-        pushNote(&midiNotes, note, velocity);
+      if ( velocity != 0 ){
+        pushNote( &midiNotes, note, velocity );
       } else {
-        popNote(&midiNotes, note);
+        popNote( &midiNotes, note );
       }
-      status = IDLE;
-    } else if (status == WAIT_CC){
+      status = MIDI_IDLE;
+    } else if ( status == MIDI_WAIT_CC ){
       // TODO
-      status = IDLE;
-    } else if (status == WAIT_PITCH){
+      status = MIDI_IDLE;
+    } else if ( status == MIDI_WAIT_PITCH ){
       // TODO
-      status = IDLE;
+      status = MIDI_IDLE;
     }
-
-    // MIDI LED actovity OFF
-    digitalWrite( MIDI_LED, LOW );
   }
 
   // Sequence the note received
   sequencer( &midiNotes );
+
+  digitalWrite( MIDI_LED, midi_led_status );
+  
 }

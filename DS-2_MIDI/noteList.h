@@ -13,6 +13,7 @@
 
 // Note priority ("ALL" works only for the MIDI OUT)
 enum notePriority { HIGHER, LAST, ALL };
+// TODO: HIGHER priority does not work properly!
 
 // Note struct
 typedef struct note {
