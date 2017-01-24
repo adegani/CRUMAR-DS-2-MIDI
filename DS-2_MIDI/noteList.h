@@ -1,92 +1,104 @@
 /* noteList.h
- *  Data structure that contains the note list to be played
- *  Author: Alessio Degani, 2016 <alessio.degani@gmail.com>
+ *  Linked List Data structure that contains the note list to be played
+ *  Author: Alessio Degani, 2017 <alessio.degani@gmail.com>
  */
 
 #ifndef DS2_NOTELIST_H
 #define DS2_NOTELIST_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
-#define MAX_NOTES 10
 #define NULL 0
 
 // Note priority ("ALL" works only for the MIDI OUT)
-enum notePriority { HIGHER, LAST, ALL };
-// TODO: HIGHER priority does not work properly!
+enum notePriority { LOWER, HIGHER, LAST, ALL };
 
 // Note struct
 typedef struct note {
     uint8_t noteNumber;
     uint8_t velocity;
-    //struct note * next;
+    note *next;
 } note_t;
 
 // Note List Struct
 typedef struct noteList {
-  note_t          midiNotes[ MAX_NOTES ];
-  uint8_t         lastMidiNote;
+  note_t        *head ;
   notePriority  priority;
 } noteList_t;
 
 // Init the note list
 void initMidiNoteList( noteList_t *list, notePriority priority ){
-  list->priority = priority;
-  list->lastMidiNote = 0;
-  for (uint8_t i = 0; i < MAX_NOTES; i++ ){
-    list->midiNotes[i].noteNumber = 0;
-    list->midiNotes[i].velocity = 0;
-    //list->next = NULL;
-  }
+  list->head      = (note_t*)malloc(sizeof(note_t));
+  list->head->noteNumber= 0;
+  list->head->velocity  = 0;
+  list->head->next      = NULL;
+  list->priority  = priority;
 }
 
 // Push a note to the list (if not already in)
 void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
-  for (uint8_t i = 0; i < MAX_NOTES; i++ ){
-    if ( (list->midiNotes[i].velocity == 0) || (list->midiNotes[i].noteNumber == noteNumber) ){
-      list->midiNotes[i].noteNumber = noteNumber;
-      list->midiNotes[i].velocity = velocity;
-      list->lastMidiNote = i;
-      return;
-    }
+  note_t *currentNote = list->head;
+  
+  while (currentNote->next != NULL) {
+    currentNote = currentNote->next;
   }
+  
+  currentNote->next = (note_t*)malloc(sizeof(note_t));
+  currentNote->next->noteNumber = noteNumber;
+  currentNote->next->velocity = velocity;
+  currentNote->next->next = NULL;
 }
 
 // Pop a note from the list (if exist)
 void popNote(noteList_t *list, uint8_t noteNumber) {
-  uint8_t deletedNote = 0;
-  for (uint8_t i = 0; i < MAX_NOTES; i++ ){
-    if (list->midiNotes[i].noteNumber == noteNumber){
-      list->midiNotes[i].noteNumber = 0;
-      list->midiNotes[i].velocity = 0;
-      deletedNote = i;
-      return;
+  note_t *currentNote = list->head;
+  note_t *temp_note = NULL;
+  
+  while (currentNote->next != NULL) {
+    if (currentNote->next->noteNumber == noteNumber){
+      break;
     }
+    currentNote = currentNote->next;
   }
-  if (deletedNote = list->lastMidiNote){
-    for (uint8_t i = 0; i < MAX_NOTES; i++ ){
-      if (list->midiNotes[i].velocity > 0){
-        list->lastMidiNote = i;
-        return;
-      }
-    }
-  }
+  temp_note = currentNote->next;
+  currentNote->next = temp_note->next;
+  free(temp_note);
 }
 
 // Select the note to be played based on priority
 // NOTE: The DS-2 is MONOPHONIC!
 uint8_t midiNoteToPlay(noteList_t *list){
-  uint8_t higherNote = 0;
-  if (list->priority == LAST){
-    return list->lastMidiNote;
-  } else {
-    for (uint8_t i = 0; i < MAX_NOTES; i++ ){
-      if (list->midiNotes[i].noteNumber > higherNote){
-        higherNote = i;
-      }
+  uint8_t lower = 127;
+  uint8_t higher = 0;
+  uint8_t last = 0;
+  uint8_t retVal = 0;
+ 
+  note_t *currentNote = list->head;
+  
+  do {
+    if (currentNote->noteNumber > higher){ 
+      higher = currentNote->noteNumber; 
     }
+    if ( (currentNote->noteNumber < lower) && (currentNote->noteNumber != 0) ){ 
+      lower = currentNote->noteNumber; 
+    }
+    last = currentNote->noteNumber;
+    currentNote = currentNote->next;
+  } while (currentNote != NULL);
+  
+  switch (list->priority) {
+    case LOWER:
+      retVal = lower;
+      break;
+    case HIGHER:
+      retVal = higher;
+      break;
+    default:
+      retVal = last;
+      break;
   }
-  return higherNote;
+  return retVal;
 }
 
 #endif // DS2_NOTELIST_H

@@ -8,8 +8,11 @@
 #include "midiDefs.h"
 
 // Fot the MIDI FSM
-enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_ON, MIDI_WAIT_NOTE_OFF, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_PITCH };
+enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_ON, MIDI_WAIT_NOTE_OFF, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_CCVAL, MIDI_WAIT_PITCH_LSB, MIDI_WAIT_PITCH_MSB, MIDI_WAIT_SYSEX };
 status_e status = MIDI_IDLE;
+
+enum gate_mode_e { GATE_SINGLE, GATE_RETRIGGER };
+gate_mode_e gate_mode = DEFAULT_GATE_MODE;
 
 byte midiChannel = DEFAULT_MIDI_CH;
 
@@ -70,7 +73,8 @@ void setup() {
 void sequencer( noteList_t *list ){
   // If there are note to play or send via MIDI, this is the right moment to do that!
   byte noteIdx = midiNoteToPlay(list);
-  playNote( list->midiNotes[noteIdx].noteNumber, list->midiNotes[noteIdx].velocity );
+  //playNote( list->midiNotes[noteIdx].noteNumber, list->midiNotes[noteIdx].velocity );
+  playNote( noteIdx, 127 );
 
   #ifdef DS2_FULL_VARIANT
   // TODO: if FULL board, sequence the MIDI OUT notes

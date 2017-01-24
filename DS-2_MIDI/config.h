@@ -9,8 +9,11 @@
 // General Config
 //#define DS2_FULL_VARIANT // Uncomment to use FULL variant instead of NANO
 
-// Note priority [LAST|HIGHER]
-#define PLAY_MODE_MIDI HIGHER
+// Note priority [LAST|HIGHER|LOWER]
+#define PLAY_MODE_MIDI LAST
+
+// Gate mode [GATE_SINGLE|GATE_RETRIGGER]
+#define DEFAULT_GATE_MODE GATE_SINGLE
 
 // Default MIDI channel
 #define DEFAULT_MIDI_CH 0
