@@ -1,0 +1,43 @@
+#N canvas 1274 289 424 224 10;
+#X obj 29 41 nbx 5 30 1 16 0 0 \$0-MIDI_CH empty MIDI_CHANNEL 0 -8
+0 10 -262144 -1 -1 1 256;
+#X obj 176 46 vradio 15 1 0 2 \$0-GATE_MODE empty Gate_Mode 0 -8 0
+10 -262144 -1 -1 0;
+#X obj 324 44 vradio 15 1 0 3 \$0-NOTE_PRIO empty Note_Priority 0 -8
+0 10 -262144 -1 -1 0;
+#X text 130 47 Single;
+#X text 137 61 Multi;
+#X text 292 45 Last;
+#X text 278 60 Higher;
+#X text 285 74 Lower;
+#N canvas 0 102 450 300 sendMIDI 0;
+#X obj 167 333 ctlout;
+#X obj 18 176 r \$0-MIDI_CH;
+#X obj 160 205 r \$0-GATE_MODE;
+#X floatatom 160 227 5 0 0 0 - - -, f 5;
+#X floatatom 317 209 5 0 0 0 - - -, f 5;
+#X floatatom 19 208 5 0 0 0 - - -, f 5;
+#X msg 195 290 103;
+#X msg 343 274 102;
+#X msg 109 287 104;
+#X obj 317 186 r \$0-NOTE_PRIO;
+#X obj 317 235 t f b;
+#X obj 159 253 t f b;
+#X obj 31 244 t f f b;
+#X connect 1 0 5 0;
+#X connect 2 0 3 0;
+#X connect 3 0 11 0;
+#X connect 4 0 10 0;
+#X connect 5 0 12 0;
+#X connect 6 0 0 1;
+#X connect 7 0 0 1;
+#X connect 8 0 0 1;
+#X connect 9 0 4 0;
+#X connect 10 0 0 0;
+#X connect 10 1 7 0;
+#X connect 11 0 0 0;
+#X connect 11 1 6 0;
+#X connect 12 0 0 2;
+#X connect 12 1 0 0;
+#X connect 12 2 8 0;
+#X restore 317 188 pd sendMIDI;
