@@ -9,6 +9,7 @@
 
 #define MIDI_RATE           31250
 
+#define MIDI_STATUS         0x80
 #define MIDI_NOTE_OFF       0x80
 #define MIDI_NOTE_ON        0x90
 #define MIDI_POLY_KEY_PRESS 0xA0
@@ -18,7 +19,17 @@
 #define MIDI_PITCH_BEND     0xE0
 #define MIDI_SYSEX          0xF0
 
-// Channel mode (after CONTROL CHANGE)
+// Control Change (Defaults controllers)
+#define MIDI_MODWHEEL       0x01
+
+// Control Change for P431-MIDI
+#define MIDI_PLAY_MODE      0x66
+#define MIDI_GATE_MODE      0x67
+#define MIDI_SET_CHANNEL    0x68
+#define MIDI_HOLD_NOTE      0x69
+#define MIDI_ARP_MODE       0x6A
+
+// Channel mode (CONTROL CHANGE reserved)
 #define MIDI_ALL_SOUND_OFF  0x78
 #define MIDI_RESET_CTRL     0x79
 #define MIDI_ALL_NOTE_OFF   0x7B

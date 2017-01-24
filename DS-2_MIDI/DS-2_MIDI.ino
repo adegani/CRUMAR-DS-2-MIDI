@@ -22,22 +22,89 @@ noteList_t midiNotes;
 byte midiByte;
 byte note;
 byte velocity;
+byte lastNote;
+byte ccNum;
+byte ccVal;
+byte pitchLSB;
+byte pitchMSB;
 
 // MIDI led activity, led_status is for pesistence of the led, otherwise, the led will stay on too few
 bool          midi_led_status         = 0;
 unsigned int  midi_led_duration_loops = 3;
 unsigned int  midi_led_timer          = 0;
 
+void pitchWheel( byte pitchLSB, byte pitchMSB ){
+  uint16_t pitchVal = pitchMSB*128;
+  pitchVal = pitchVal + pitchLSB;
+}
+
+void controlChange( byte ccNum, byte ccVal ){
+  /*Serial.print(ccNum);
+  Serial.print("-");
+  Serial.println(ccVal);*/
+  switch (ccNum){
+    case MIDI_MODWHEEL:
+      break;
+    case MIDI_PLAY_MODE:
+      if ( ccVal == 0 ){
+        priority = LAST;
+      } else if ( ccVal == 1 ) {
+        priority = HIGHER;
+      } else if ( ccVal == 2 ) {
+        priority = LOWER;
+      }
+      midiNotes.priority = priority;
+      break;
+    case MIDI_GATE_MODE:
+      if ( ccVal == 0 ){
+        gate_mode = GATE_SINGLE;
+      } else {
+        gate_mode = GATE_RETRIGGER;
+      }
+      break;
+    case MIDI_SET_CHANNEL:
+      if ( (ccVal >= 0) && (ccVal < 16) ){
+        midiChannel = ccVal-1;
+      }
+      break;
+    case MIDI_HOLD_NOTE:
+      break;
+    case MIDI_ARP_MODE:
+      break;
+    case MIDI_ALL_SOUND_OFF:
+      break;
+    case MIDI_RESET_CTRL:
+      break;
+    case MIDI_ALL_NOTE_OFF:
+      break;
+    case MIDI_OMNI_OFF:
+      break;
+    case MIDI_OMNI_ON:
+      break;
+    case MIDI_POLY_OFF:
+      break;
+    case MIDI_POLY_ON:
+      break;
+    default:
+      break;
+  }
+}
+
 void playNote( byte note, byte velocity ){
 
   // A note off -> close the gate
-  if ( velocity == 0 ) {
+  if ( (velocity == 0) || (note < 41) || (note > 84) ) {
     digitalWrite( DS2_GATE_NEG, HIGH );
     return;
   }
-
+  
   if (( note >= 41 ) && ( note <= 84 )) {
     note = note - 40;
+
+    if ( (gate_mode == GATE_RETRIGGER) && (lastNote != note) ) {
+      digitalWrite( DS2_GATE_NEG, HIGH );
+    }
+    
     ( (note & 32) == 32 ) ? digitalWrite(DS2_32o, HIGH): digitalWrite(DS2_32o, LOW);
     ( (note & 16) == 16 ) ? digitalWrite(DS2_16o, HIGH): digitalWrite(DS2_16o, LOW);
     ( (note & 8)  == 8 )  ? digitalWrite(DS2_8o, HIGH): digitalWrite(DS2_8o, LOW);
@@ -45,11 +112,14 @@ void playNote( byte note, byte velocity ){
     ( (note & 2)  == 2 )  ? digitalWrite(DS2_2o, HIGH): digitalWrite(DS2_2o, LOW);
     ( (note & 1)  == 1 )  ? digitalWrite(DS2_1o, HIGH): digitalWrite(DS2_1o, LOW);
     digitalWrite( DS2_GATE_NEG, LOW );
+    lastNote = note;
   }
 
 }
 
 void setup() {
+  lastNote = 0;
+  
   // Setup decoded output port for DS-2
   pinMode( DS2_GATE_NEG, OUTPUT );
   pinMode( DS2_1o,       OUTPUT );
@@ -106,13 +176,16 @@ void loop() {
     // read the incoming byte:
     midiByte = Serial.read();
 
-    if (midiByte & 0x80){
-      // Just in case I've missed some byte
+    if (midiByte & MIDI_STATUS){
+      // Just in case I've missed some byte and a new status is arrived
       status = MIDI_IDLE;
     }
 
     // MIDI messages FSM
     if ( status == MIDI_IDLE ){
+      /*if ( midiByte & MIDI_SYSEX){
+        status = MIDI_WAIT_SYSEX;
+      } else*/
       if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
         status = MIDI_WAIT_NOTE_ON;
       } else if ( midiByte == (MIDI_NOTE_OFF | midiChannel) ){
@@ -120,7 +193,7 @@ void loop() {
       } else if (midiByte == (MIDI_CONTROL_CHANGE | midiChannel) ){
         status = MIDI_WAIT_CC;
       } else if ( midiByte == (MIDI_PITCH_BEND | midiChannel) ){
-        status = MIDI_WAIT_PITCH;
+        status = MIDI_WAIT_PITCH_LSB;
       } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | midiChannel)) ||
                  (midiByte == (MIDI_ALL_SOUND_OFF | midiChannel)) ){
         initMidiNoteList( &midiNotes, priority );
@@ -142,9 +215,20 @@ void loop() {
       }
       status = MIDI_IDLE;
     } else if ( status == MIDI_WAIT_CC ){
-      // TODO
+      ccNum = midiByte;
+      status = MIDI_WAIT_CCVAL;
+    } else if ( status == MIDI_WAIT_CCVAL ){
+      ccVal = midiByte;
+      controlChange( ccNum, ccVal );
       status = MIDI_IDLE;
-    } else if ( status == MIDI_WAIT_PITCH ){
+    } else if ( status == MIDI_WAIT_PITCH_LSB ){
+      pitchLSB = midiByte;
+      status = MIDI_WAIT_PITCH_MSB;
+    } else if ( status == MIDI_WAIT_PITCH_MSB ){
+      pitchMSB = midiByte;
+      pitchWheel( pitchLSB, pitchMSB );
+      status = MIDI_IDLE;
+    }  else if ( status == MIDI_WAIT_SYSEX ){
       // TODO
       status = MIDI_IDLE;
     }
