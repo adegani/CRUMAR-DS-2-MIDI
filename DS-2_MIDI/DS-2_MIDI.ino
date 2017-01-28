@@ -10,6 +10,7 @@
 // Fot the MIDI FSM
 enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_ON, MIDI_WAIT_NOTE_OFF, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_CCVAL, MIDI_WAIT_PITCH_LSB, MIDI_WAIT_PITCH_MSB, MIDI_WAIT_SYSEX };
 status_e status = MIDI_IDLE;
+status_e prevStatus = MIDI_IDLE;
 
 enum gate_mode_e { GATE_SINGLE, GATE_RETRIGGER };
 gate_mode_e gate_mode = DEFAULT_GATE_MODE;
@@ -168,25 +169,32 @@ void loop() {
 
   if (Serial.available() > 0) {
     // A MIDI message is arrived
-    
+
     // start MIDI led activity mini FSM
     midi_led_timer  = 0;
     midi_led_status = 1;
-    
+
     // read the incoming byte:
     midiByte = Serial.read();
 
-    if (midiByte & MIDI_STATUS){
+    if ( midiByte & MIDI_STATUS ){
       // Just in case I've missed some byte and a new status is arrived
       status = MIDI_IDLE;
     }
 
+    // TODO: check if the running status works properly!
+    if ( (midiByte & MIDI_STATUS == 0) && (prevStatus == MIDI_WAIT_NOTE_ON) && (status == MIDI_IDLE) ){
+      // NOTE ON RUNNING STATUS
+      status = MIDI_WAIT_NOTE_ON;
+    }
+
+     prevStatus = MIDI_IDLE;
+     
     // MIDI messages FSM
     if ( status == MIDI_IDLE ){
-      /*if ( midiByte & MIDI_SYSEX){
+      if ( midiByte & MIDI_SYSEX == MIDI_SYSEX ){ // TODO: check if the sysex are ignored correctly
         status = MIDI_WAIT_SYSEX;
-      } else*/
-      if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
+      } else if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
         status = MIDI_WAIT_NOTE_ON;
       } else if ( midiByte == (MIDI_NOTE_OFF | midiChannel) ){
         status = MIDI_WAIT_NOTE_OFF;
@@ -202,6 +210,7 @@ void loop() {
     } else if ( status == MIDI_WAIT_NOTE_ON ){
       note = midiByte;
       status = MIDI_WAIT_VELOCITY;
+      prevStatus = MIDI_WAIT_NOTE_ON;
     } else if ( status == MIDI_WAIT_NOTE_OFF ){
       note = midiByte;
       popNote( &midiNotes, note );
@@ -214,6 +223,7 @@ void loop() {
         popNote( &midiNotes, note );
       }
       status = MIDI_IDLE;
+      prevStatus = MIDI_WAIT_NOTE_ON;
     } else if ( status == MIDI_WAIT_CC ){
       ccNum = midiByte;
       status = MIDI_WAIT_CCVAL;
