@@ -29,32 +29,32 @@ typedef struct noteList {
 
 // Init the note list
 void initMidiNoteList( noteList_t *list, notePriority priority ){
-  list->head      = (note_t*)malloc(sizeof(note_t));
+  list->head            = (note_t*)malloc(sizeof(note_t));
   list->head->noteNumber= 0;
   list->head->velocity  = 0;
   list->head->next      = NULL;
-  list->priority  = priority;
+  list->priority        = priority;
 }
 
 // Push a note to the list (if not already in)
 void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
   note_t *currentNote = list->head;
-  
+
   while (currentNote->next != NULL) {
     currentNote = currentNote->next;
   }
-  
+
   currentNote->next = (note_t*)malloc(sizeof(note_t));
   currentNote->next->noteNumber = noteNumber;
-  currentNote->next->velocity = velocity;
-  currentNote->next->next = NULL;
+  currentNote->next->velocity   = velocity;
+  currentNote->next->next       = NULL;
 }
 
 // Pop a note from the list (if exist)
 void popNote(noteList_t *list, uint8_t noteNumber) {
   note_t *currentNote = list->head;
   note_t *temp_note = NULL;
-  
+
   while (currentNote->next != NULL) {
     if (currentNote->next->noteNumber == noteNumber){
       break;
@@ -73,20 +73,20 @@ uint8_t midiNoteToPlay(noteList_t *list){
   uint8_t higher = 0;
   uint8_t last = 0;
   uint8_t retVal = 0;
- 
+
   note_t *currentNote = list->head;
-  
+
   do {
-    if (currentNote->noteNumber > higher){ 
-      higher = currentNote->noteNumber; 
+    if (currentNote->noteNumber > higher){
+      higher = currentNote->noteNumber;
     }
-    if ( (currentNote->noteNumber < lower) && (currentNote->noteNumber != 0) ){ 
-      lower = currentNote->noteNumber; 
+    if ( (currentNote->noteNumber < lower) && (currentNote->noteNumber != 0) ){
+      lower = currentNote->noteNumber;
     }
     last = currentNote->noteNumber;
     currentNote = currentNote->next;
   } while (currentNote != NULL);
-  
+
   switch (list->priority) {
     case LOWER:
       retVal = lower;
