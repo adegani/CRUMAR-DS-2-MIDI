@@ -29,6 +29,9 @@ byte ccVal;
 byte pitchLSB;
 byte pitchMSB;
 
+// Note transposition
+int transposeSemitone = NOTE_TRANSPOSE_SEMITONE;
+
 // MIDI led activity, led_status is for pesistence of the led, otherwise, the led will stay on too few
 bool          midi_led_status         = 0;
 unsigned int  midi_led_duration_loops = 3;
@@ -72,6 +75,9 @@ void controlChange( byte ccNum, byte ccVal ){
       break;
     case MIDI_ARP_MODE:
       break;
+    case MIDI_TRANSPOSE_SEMI:
+      transposeSemitone = ccVal - 63;
+      break;
     case MIDI_ALL_SOUND_OFF:
       break;
     case MIDI_RESET_CTRL:
@@ -94,18 +100,20 @@ void controlChange( byte ccNum, byte ccVal ){
 void playNote( byte note, byte velocity ){
 
   // A note off -> close the gate
-  if ( (velocity == 0) || (note < 41) || (note > 84) ) {
+  if ( (velocity == 0) || (note < DS2_LOWER_NOTE) || (note > DS2_HIGHER_NOTE) ) {
     digitalWrite( DS2_GATE_NEG, HIGH );
     return;
   }
-  
-  if (( note >= 41 ) && ( note <= 84 )) {
-    note = note - 40;
+
+  note = note + transposeSemitone;
+
+  if (( note >= DS2_LOWER_NOTE ) && ( note <= DS2_HIGHER_NOTE )) {
+    note = note - DS2_LOWER_NOTE;
 
     if ( (gate_mode == GATE_RETRIGGER) && (lastNote != note) ) {
       digitalWrite( DS2_GATE_NEG, HIGH );
     }
-    
+
     ( (note & 32) == 32 ) ? digitalWrite(DS2_32o, HIGH): digitalWrite(DS2_32o, LOW);
     ( (note & 16) == 16 ) ? digitalWrite(DS2_16o, HIGH): digitalWrite(DS2_16o, LOW);
     ( (note & 8)  == 8 )  ? digitalWrite(DS2_8o, HIGH): digitalWrite(DS2_8o, LOW);
@@ -120,7 +128,7 @@ void playNote( byte note, byte velocity ){
 
 void setup() {
   lastNote = 0;
-  
+
   // Setup decoded output port for DS-2
   pinMode( DS2_GATE_NEG, OUTPUT );
   pinMode( DS2_1o,       OUTPUT );
@@ -248,5 +256,5 @@ void loop() {
   sequencer( &midiNotes );
 
   digitalWrite( MIDI_LED, midi_led_status );
-  
+
 }

@@ -15,6 +15,8 @@
 // Gate mode [GATE_SINGLE|GATE_RETRIGGER]
 #define DEFAULT_GATE_MODE GATE_SINGLE
 
+#define NOTE_TRANSPOSE_SEMITONE 0
+
 // Default MIDI channel
 #define DEFAULT_MIDI_CH 0
 
@@ -28,6 +30,10 @@
 #define DS2_4o        6
 #define DS2_2o        7
 #define DS2_1o        8
+
+// DS-2 MIDI NOTE range
+#define DS2_LOWER_NOTE  41
+#define DS2_HIGHER_NOTE 84
 
 // MIDI ports and LED
 #define MIDI_LED      13

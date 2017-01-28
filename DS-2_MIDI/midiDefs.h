@@ -28,6 +28,7 @@
 #define MIDI_SET_CHANNEL    0x68
 #define MIDI_HOLD_NOTE      0x69
 #define MIDI_ARP_MODE       0x6A
+#define MIDI_TRANSPOSE_SEMI 0x6B
 
 // Channel mode (CONTROL CHANGE reserved)
 #define MIDI_ALL_SOUND_OFF  0x78
