@@ -1,4 +1,4 @@
-#N canvas 1274 289 424 224 10;
+#N canvas 958 339 424 224 10;
 #X obj 29 41 nbx 5 30 1 16 0 0 \$0-MIDI_CH empty MIDI_CHANNEL 0 -8
 0 10 -262144 -1 -1 1 256;
 #X obj 176 46 vradio 15 1 0 2 \$0-GATE_MODE empty Gate_Mode 0 -8 0
@@ -10,7 +10,7 @@
 #X text 292 45 Last;
 #X text 278 60 Higher;
 #X text 285 74 Lower;
-#N canvas 0 102 450 300 sendMIDI 0;
+#N canvas 0 124 861 428 sendMIDI 0;
 #X obj 167 333 ctlout;
 #X obj 18 176 r \$0-MIDI_CH;
 #X obj 160 205 r \$0-GATE_MODE;
@@ -24,6 +24,11 @@
 #X obj 317 235 t f b;
 #X obj 159 253 t f b;
 #X obj 31 244 t f f b;
+#X floatatom 489 248 5 0 0 0 - - -, f 5;
+#X msg 515 313 102;
+#X obj 489 274 t f b;
+#X obj 486 184 r \$0-TRANSPOSE;
+#X obj 488 215 + 63;
 #X connect 1 0 5 0;
 #X connect 2 0 3 0;
 #X connect 3 0 11 0;
@@ -40,4 +45,12 @@
 #X connect 12 0 0 2;
 #X connect 12 1 0 0;
 #X connect 12 2 8 0;
+#X connect 13 0 15 0;
+#X connect 14 0 0 1;
+#X connect 15 0 0 0;
+#X connect 15 1 14 0;
+#X connect 16 0 17 0;
+#X connect 17 0 13 0;
 #X restore 317 188 pd sendMIDI;
+#X obj 135 129 nbx 5 14 -63 64 0 0 \$0-TRANSPOSE empty Transpose_semitone
+0 -8 0 10 -262144 -1 -1 0 256;
