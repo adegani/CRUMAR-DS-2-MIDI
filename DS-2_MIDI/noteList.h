@@ -36,34 +36,60 @@ void initMidiNoteList( noteList_t *list, notePriority priority ){
   list->priority        = priority;
 }
 
+// Flush all pending notes (RESET)
+void flushMidiNoteList( noteList_t *list ){
+  note_t *currentNote = list->head;
+  note_t *prevNote = currentNote;
+
+  while (currentNote->next != NULL) {
+    prevNote = currentNote;
+    currentNote = currentNote->next;
+    if (prevNote != list->head){
+      free(prevNote);
+    }
+    if (currentNote->next == NULL){
+      free(currentNote);
+    }
+  }
+  list->head->next = NULL;
+}
+
 // Push a note to the list (if not already in)
 void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
+  bool alreadyAdded = false;
   note_t *currentNote = list->head;
 
   while (currentNote->next != NULL) {
     currentNote = currentNote->next;
+    if ( currentNote->noteNumber == noteNumber ){
+      alreadyAdded = true;
+    }
   }
 
-  currentNote->next = (note_t*)malloc(sizeof(note_t));
-  currentNote->next->noteNumber = noteNumber;
-  currentNote->next->velocity   = velocity;
-  currentNote->next->next       = NULL;
+  if ( !alreadyAdded ){
+    currentNote->next = (note_t*)malloc(sizeof(note_t));
+    currentNote->next->noteNumber = noteNumber;
+    currentNote->next->velocity   = velocity;
+    currentNote->next->next       = NULL;
+  }
 }
 
 // Pop a note from the list (if exist)
 void popNote(noteList_t *list, uint8_t noteNumber) {
   note_t *currentNote = list->head;
-  note_t *temp_note = NULL;
-
-  while (currentNote->next != NULL) {
-    if (currentNote->next->noteNumber == noteNumber){
-      break;
+  if ( currentNote->next != NULL ){
+    note_t *temp_note = NULL;
+  
+    while (currentNote->next != NULL) {
+      if (currentNote->next->noteNumber == noteNumber){
+        break;
+      }
+      currentNote = currentNote->next;
     }
-    currentNote = currentNote->next;
+    temp_note = currentNote->next;
+    currentNote->next = temp_note->next;
+    free(temp_note);
   }
-  temp_note = currentNote->next;
-  currentNote->next = temp_note->next;
-  free(temp_note);
 }
 
 // Select the note to be played based on priority
