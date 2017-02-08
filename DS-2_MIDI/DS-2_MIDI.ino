@@ -8,7 +8,7 @@
 #include "midiDefs.h"
 
 // Fot the MIDI FSM
-enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_ON, MIDI_WAIT_NOTE_OFF, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_CCVAL, MIDI_WAIT_PITCH_LSB, MIDI_WAIT_PITCH_MSB, MIDI_WAIT_SYSEX };
+enum status_e { MIDI_IDLE, MIDI_WAIT_NOTE_NUM, MIDI_WAIT_VELOCITY, MIDI_WAIT_CC, MIDI_WAIT_CCVAL, MIDI_WAIT_PITCH_LSB, MIDI_WAIT_PITCH_MSB, MIDI_WAIT_SYSEX };
 status_e status = MIDI_IDLE;
 status_e prevStatus = MIDI_IDLE;
 
@@ -29,6 +29,8 @@ byte ccVal;
 byte pitchLSB;
 byte pitchMSB;
 
+bool isNoteON;
+
 // Note transposition
 int transposeSemitone = NOTE_TRANSPOSE_SEMITONE;
 
@@ -43,9 +45,6 @@ void pitchWheel( byte pitchLSB, byte pitchMSB ){
 }
 
 void controlChange( byte ccNum, byte ccVal ){
-  /*Serial.print(ccNum);
-  Serial.print("-");
-  Serial.println(ccVal);*/
   switch (ccNum){
     case MIDI_MODWHEEL:
       break;
@@ -78,11 +77,11 @@ void controlChange( byte ccNum, byte ccVal ){
     case MIDI_TRANSPOSE_SEMI:
       transposeSemitone = ccVal - 63;
       break;
+    case MIDI_ALL_NOTE_OFF:
     case MIDI_ALL_SOUND_OFF:
+      flushMidiNoteList( &midiNotes );
       break;
     case MIDI_RESET_CTRL:
-      break;
-    case MIDI_ALL_NOTE_OFF:
       break;
     case MIDI_OMNI_OFF:
       break;
@@ -128,7 +127,8 @@ void playNote( byte note, byte velocity ){
 
 void setup() {
   lastNote = 0;
-
+  isNoteON = false;
+  
   // Setup decoded output port for DS-2
   pinMode( DS2_GATE_NEG, OUTPUT );
   pinMode( DS2_1o,       OUTPUT );
@@ -161,6 +161,7 @@ void sequencer( noteList_t *list ){
 }
 
 void loop() {
+
   #ifdef DS2_FULL_VARIANT
   // TODO: if FULL board, read the DS-2 keyboard
   #endif
@@ -191,9 +192,9 @@ void loop() {
     }
 
     // TODO: check if the running status works properly!
-    if ( (midiByte & MIDI_STATUS == 0) && (prevStatus == MIDI_WAIT_NOTE_ON) && (status == MIDI_IDLE) ){
+    if ( ( (midiByte & MIDI_STATUS) == 0) && (prevStatus == MIDI_WAIT_NOTE_NUM) && (status == MIDI_IDLE) ){
       // NOTE ON RUNNING STATUS
-      status = MIDI_WAIT_NOTE_ON;
+      status = MIDI_WAIT_NOTE_NUM;
     }
 
      prevStatus = MIDI_IDLE;
@@ -203,35 +204,28 @@ void loop() {
       if ( midiByte & MIDI_SYSEX == MIDI_SYSEX ){ // TODO: check if the sysex are ignored correctly
         status = MIDI_WAIT_SYSEX;
       } else if ( midiByte == (MIDI_NOTE_ON | midiChannel) ){
-        status = MIDI_WAIT_NOTE_ON;
+        status = MIDI_WAIT_NOTE_NUM;
+        isNoteON = true;
       } else if ( midiByte == (MIDI_NOTE_OFF | midiChannel) ){
-        status = MIDI_WAIT_NOTE_OFF;
+        status = MIDI_WAIT_NOTE_NUM;
+        isNoteON = false;
       } else if (midiByte == (MIDI_CONTROL_CHANGE | midiChannel) ){
         status = MIDI_WAIT_CC;
       } else if ( midiByte == (MIDI_PITCH_BEND | midiChannel) ){
         status = MIDI_WAIT_PITCH_LSB;
-      } else if ( (midiByte == (MIDI_ALL_NOTE_OFF | midiChannel)) ||
-                 (midiByte == (MIDI_ALL_SOUND_OFF | midiChannel)) ){
-        initMidiNoteList( &midiNotes, priority );
-        status = MIDI_IDLE;
       }
-    } else if ( status == MIDI_WAIT_NOTE_ON ){
+    } else if ( status == MIDI_WAIT_NOTE_NUM ){
       note = midiByte;
       status = MIDI_WAIT_VELOCITY;
-      prevStatus = MIDI_WAIT_NOTE_ON;
-    } else if ( status == MIDI_WAIT_NOTE_OFF ){
-      note = midiByte;
-      popNote( &midiNotes, note );
-      status = MIDI_IDLE;
     } else if ( status == MIDI_WAIT_VELOCITY ){
       velocity = midiByte;
-      if ( velocity != 0 ){
-        pushNote( &midiNotes, note, velocity );
-      } else {
+      if ((velocity == 0) || (!isNoteON)) {
         popNote( &midiNotes, note );
+      } else {
+        pushNote( &midiNotes, note, velocity );
       }
       status = MIDI_IDLE;
-      prevStatus = MIDI_WAIT_NOTE_ON;
+      prevStatus = MIDI_WAIT_NOTE_NUM;
     } else if ( status == MIDI_WAIT_CC ){
       ccNum = midiByte;
       status = MIDI_WAIT_CCVAL;
