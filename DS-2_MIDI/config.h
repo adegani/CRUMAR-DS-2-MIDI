@@ -20,6 +20,14 @@
 // Default MIDI channel
 #define DEFAULT_MIDI_CH 0
 
+// Control Change for P431-MIDI
+#define DS2_PLAY_MODE      0x66
+#define DS2_GATE_MODE      0x67
+#define DS2_SET_CHANNEL    0x68
+#define DS2_HOLD_NOTE      0x69
+#define DS2_ARP_MODE       0x6A
+#define DS2_TRANSPOSE_SEMI 0x6B
+
 // Configure the ATMega328 pin names
 
 // OUTPUTS to CRUMAR
