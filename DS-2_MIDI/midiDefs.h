@@ -9,26 +9,28 @@
 
 #define MIDI_RATE           31250
 
+// --- MIDI STATUS byte ---
 #define MIDI_STATUS         0x80
+// Status with 2 data bytes
 #define MIDI_NOTE_OFF       0x80
 #define MIDI_NOTE_ON        0x90
 #define MIDI_POLY_KEY_PRESS 0xA0
 #define MIDI_CONTROL_CHANGE 0xB0
-#define MIDI_PROGRAM_CHANGE 0xC0
-#define MIDI_CH_PRESSURE    0xD0
 #define MIDI_PITCH_BEND     0xE0
-#define MIDI_SYSEX          0xF0
+// Status with 1 data byte
+#define MIDI_PROGRAM_CHANGE 0xC0
+#define MIDI_CHANNEL_PRESS  0xD0
 
+// SysEX
+#define MIDI_SYSEX          0xF0
+#define MIDI_TIME_CODE      0xF1
+#define MIDI_SONG_POSITION  0xF2
+#define MIDI_SONG_SELECT    0xF3
+#define MIDI_END_OF_SYSEX   0xF7
+
+// --- MIDI CHANNEL MODE ---
 // Control Change (Defaults controllers)
 #define MIDI_MODWHEEL       0x01
-
-// Control Change for P431-MIDI
-#define MIDI_PLAY_MODE      0x66
-#define MIDI_GATE_MODE      0x67
-#define MIDI_SET_CHANNEL    0x68
-#define MIDI_HOLD_NOTE      0x69
-#define MIDI_ARP_MODE       0x6A
-#define MIDI_TRANSPOSE_SEMI 0x6B
 
 // Channel mode (CONTROL CHANGE reserved)
 #define MIDI_ALL_SOUND_OFF  0x78
@@ -39,6 +41,12 @@
 #define MIDI_POLY_OFF       0x7E
 #define MIDI_POLY_ON        0x7F
 
+// --- System REAL-TIME messages ---
+#define MIDI_CLOCK          0xF8
+#define MIDI_START          0xFA
+#define MIDI_CONTINUE       0xFB
+#define MIDI_STOP           0xFC
+#define MIDI_ACTIVE_SENS    0xFE
 #define MIDI_RESET_ALL      0xFF
 
 #endif // DS2_MIDIDEFS_H
