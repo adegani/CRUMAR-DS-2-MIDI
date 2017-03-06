@@ -1,130 +1,442 @@
-/* noteList.h
- *  Linked List Data structure that contains the note list to be played
- *  Author: Alessio Degani, 2017 <alessio.degani@gmail.com>
+/*!
+ *  \file       noteList.h
+ *  \author     Francois Best
+ *  \date       24/05/2013
+ *  \brief      Linked list of notes, for Low, Last & High playing modes.
+ *  \license    GPL v3.0 - Copyright Forty Seven Effects 2013
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DS2_NOTELIST_H
-#define DS2_NOTELIST_H
+#pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <inttypes.h>
 
-#define NULL 0
+typedef uint8_t byte;
 
-// Note priority ("ALL" works only for the MIDI OUT)
-enum notePriority { LOWER, HIGHER, LAST, ALL };
+// -----------------------------------------------------------------------------
 
-// Note struct
-typedef struct note {
-    uint8_t noteNumber;
-    uint8_t velocity;
-    note *next;
-} note_t;
+struct MidiNote
+{
+    inline MidiNote();
+    inline MidiNote(byte inPitch, byte inVelocity);
+    inline MidiNote(const MidiNote& inOther);
+    inline MidiNote& operator= (const MidiNote& inOther);
 
-// Note List Struct
-typedef struct noteList {
-  note_t        *head ;
-  notePriority  priority;
-} noteList_t;
+    byte pitch;
+    byte velocity;
+};
 
-// Init the note list
-void initMidiNoteList( noteList_t *list, notePriority priority ){
-  list->head            = (note_t*)malloc(sizeof(note_t));
-  list->head->noteNumber= 0;
-  list->head->velocity  = 0;
-  list->head->next      = NULL;
-  list->priority        = priority;
+// -----------------------------------------------------------------------------
+
+template<byte Size>
+class MidiNoteList
+{
+private:
+    struct Cell
+    {
+        inline Cell();
+        inline Cell(const Cell& inOther);
+        inline Cell& operator= (const Cell& inOther);
+
+        MidiNote note;
+        bool active;
+        Cell* next;
+        Cell* prev;
+    };
+
+public:
+    inline  MidiNoteList();
+    inline ~MidiNoteList();
+
+public:
+    inline void add(const MidiNote& inNote);
+    inline void remove(byte inPitch);
+    inline void reset();
+
+public:
+    inline bool get(byte inIndex, byte& outPitch) const;
+    inline bool getLast(byte& outPitch) const;
+    inline bool getHigh(byte& outPitch) const;
+    inline bool getLow(byte& outPitch) const;
+
+public:
+    inline bool empty() const;
+    inline byte size() const;
+
+private:
+    inline Cell* getFirstEmptyCell();
+    inline void print() const;
+
+private:
+    Cell mArray[Size];
+    Cell* mHead;
+    Cell* mTail;
+    byte mSize;
+};
+
+// ########################################################################## //
+// Inline implementation
+
+inline MidiNote::MidiNote()
+    : pitch(0)
+    , velocity(0)
+{
 }
 
-// Flush all pending notes (RESET)
-void flushMidiNoteList( noteList_t *list ){
-  note_t *currentNote = list->head;
-  note_t *prevNote = currentNote;
-
-  while (currentNote->next != NULL) {
-    prevNote = currentNote;
-    currentNote = currentNote->next;
-    if (prevNote != list->head){
-      free(prevNote);
-    }
-    if (currentNote->next == NULL){
-      free(currentNote);
-    }
-  }
-  list->head->next = NULL;
+inline MidiNote::MidiNote(byte inPitch, byte inVelocity)
+    : pitch(inPitch)
+    , velocity(inVelocity)
+{
 }
 
-// Push a note to the list (if not already in)
-void pushNote(noteList_t *list, uint8_t noteNumber, uint8_t velocity) {
-  bool alreadyAdded = false;
-  note_t *currentNote = list->head;
-
-  while (currentNote->next != NULL) {
-    currentNote = currentNote->next;
-    if ( currentNote->noteNumber == noteNumber ){
-      alreadyAdded = true;
-    }
-  }
-
-  if ( !alreadyAdded ){
-    currentNote->next = (note_t*)malloc(sizeof(note_t));
-    currentNote->next->noteNumber = noteNumber;
-    currentNote->next->velocity   = velocity;
-    currentNote->next->next       = NULL;
-  }
+inline MidiNote::MidiNote(const MidiNote& inOther)
+    : pitch(inOther.pitch)
+    , velocity(inOther.velocity)
+{
 }
 
-// Pop a note from the list (if exist)
-void popNote(noteList_t *list, uint8_t noteNumber) {
-  note_t *currentNote = list->head;
-  if ( currentNote->next != NULL ){
-    note_t *temp_note = NULL;
-  
-    while (currentNote->next != NULL) {
-      if (currentNote->next->noteNumber == noteNumber){
-        break;
-      }
-      currentNote = currentNote->next;
-    }
-    temp_note = currentNote->next;
-    currentNote->next = temp_note->next;
-    free(temp_note);
-  }
+inline MidiNote& MidiNote::operator= (const MidiNote& inOther)
+{
+    pitch    = inOther.pitch;
+    velocity = inOther.velocity;
+    return *this;
 }
 
-// Select the note to be played based on priority
-// NOTE: The DS-2 is MONOPHONIC!
-uint8_t midiNoteToPlay(noteList_t *list){
-  uint8_t lower = 127;
-  uint8_t higher = 0;
-  uint8_t last = 0;
-  uint8_t retVal = 0;
+// ########################################################################## //
 
-  note_t *currentNote = list->head;
-
-  do {
-    if (currentNote->noteNumber > higher){
-      higher = currentNote->noteNumber;
-    }
-    if ( (currentNote->noteNumber < lower) && (currentNote->noteNumber != 0) ){
-      lower = currentNote->noteNumber;
-    }
-    last = currentNote->noteNumber;
-    currentNote = currentNote->next;
-  } while (currentNote != NULL);
-
-  switch (list->priority) {
-    case LOWER:
-      retVal = lower;
-      break;
-    case HIGHER:
-      retVal = higher;
-      break;
-    default:
-      retVal = last;
-      break;
-  }
-  return retVal;
+template<byte Size>
+inline MidiNoteList<Size>::Cell::Cell()
+    : note()
+    , active(false)
+    , next(0)
+    , prev(0)
+{
 }
 
-#endif // DS2_NOTELIST_H
+template<byte Size>
+inline MidiNoteList<Size>::Cell::Cell(const Cell& inOther)
+    : note(inOther.note)
+    , active(inOther.active)
+    , next(inOther.next)
+    , prev(inOther.prev)
+{
+}
+
+template<byte Size>
+inline typename MidiNoteList<Size>::Cell& MidiNoteList<Size>::Cell::operator= (const Cell& inOther)
+{
+    note = inOther.note;
+    active = inOther.active;
+    next = inOther.next;
+    prev = inOther.prev;
+    return *this;
+}
+
+// ########################################################################## //
+
+template<byte Size>
+inline MidiNoteList<Size>::MidiNoteList()
+{
+}
+
+template<byte Size>
+inline MidiNoteList<Size>::~MidiNoteList()
+{
+}
+
+// -----------------------------------------------------------------------------
+
+/*! \brief Add a note, sorting it by time.
+ Call this when receiving a NoteOn event. This will add the new note as the tail
+ of the list.
+ */
+template<byte Size>
+inline void MidiNoteList<Size>::add(const MidiNote& inNote)
+{
+    if (mHead == 0)
+    {
+        mArray[0].note   = inNote;
+        mArray[0].active = true;
+        mArray[0].next   = 0;
+        mArray[0].prev   = 0;
+        mHead = mArray;
+        mTail = mArray;
+    }
+    else
+    {
+        // Find the first inactive cell, and use it as tail.
+        Cell* const oldTail = mTail;
+        Cell* const newTail = getFirstEmptyCell();
+
+        newTail->active = true;
+        newTail->note = inNote;
+
+        oldTail->next = newTail;
+        newTail->prev = oldTail;
+        newTail->next = 0;
+        mTail = newTail;
+    }
+    mSize++;
+    print();
+}
+
+/*! \brief Reset list
+ Call this when receiving ALL_NOTE_OFF.
+ */
+template<byte Size>
+inline void MidiNoteList<Size>::reset()
+{
+    if (mTail != 0)
+    {
+        for (Cell* it = mTail; it != 0; it = it->prev)
+        {
+            //if (it->note.pitch == inPitch)
+            //{
+                Cell* const prev = it->prev;
+                Cell* const next = it->next;
+
+                it->active = false;
+                it->next = 0;
+                it->prev = 0;
+
+                // Reconnect both ends
+                if (it == mHead)
+                {
+                    //AVR_ASSERT(prev == 0);
+                    mHead = next;
+                }
+                else
+                {
+                    //AVR_ASSERT(prev != 0);
+                    prev->next = next;
+                }
+
+                if (it == mTail)
+                {
+                    //AVR_ASSERT(next == 0);
+                    mTail = prev;
+                }
+                else
+                {
+                    //AVR_ASSERT(next != 0);
+                    next->prev = prev;
+                }
+
+                mSize--;
+                break;
+            //}
+        }
+    }
+    print();
+}
+
+/*! \brief Remove a note
+ Call this when receiving a NoteOff event.
+ */
+template<byte Size>
+inline void MidiNoteList<Size>::remove(byte inPitch)
+{
+    if (mTail != 0)
+    {
+        for (Cell* it = mTail; it != 0; it = it->prev)
+        {
+            if (it->note.pitch == inPitch)
+            {
+                Cell* const prev = it->prev;
+                Cell* const next = it->next;
+
+                it->active = false;
+                it->next = 0;
+                it->prev = 0;
+
+                // Reconnect both ends
+                if (it == mHead)
+                {
+                    //AVR_ASSERT(prev == 0);
+                    mHead = next;
+                }
+                else
+                {
+                    //AVR_ASSERT(prev != 0);
+                    prev->next = next;
+                }
+
+                if (it == mTail)
+                {
+                    //AVR_ASSERT(next == 0);
+                    mTail = prev;
+                }
+                else
+                {
+                    //AVR_ASSERT(next != 0);
+                    next->prev = prev;
+                }
+
+                mSize--;
+                break;
+            }
+        }
+    }
+    print();
+}
+
+// -----------------------------------------------------------------------------
+
+/*! \brief Get a note at an arbitrary position
+ This can be interesting for duo/multi/polyphony operations.
+ */
+template<byte Size>
+inline bool MidiNoteList<Size>::get(byte inIndex, byte& outPitch) const
+{
+    if (mTail)
+    {
+        const Cell* it = mTail;
+        for (byte i = 0; i < inIndex; ++i)
+        {
+            if (it->prev)
+            {
+                it = it->prev;
+            }
+        }
+
+        print();
+        //AVR_LOG("Index " << inIndex << ": " << it->note.pitch);
+
+        outPitch = it->note.pitch;
+        return true;
+    }
+    return false;
+}
+
+/*! \brief Get the last active note played
+ This implements the Mono Last playing mode.
+ */
+template<byte Size>
+inline bool MidiNoteList<Size>::getLast(byte& outPitch) const
+{
+    if (!mTail)
+    {
+        return false;
+    }
+
+    outPitch = mTail->note.pitch;
+    return true;
+}
+
+/*! \brief Get the highest pitched active note
+ This implements the Mono High playing mode.
+ */
+template<byte Size>
+inline bool MidiNoteList<Size>::getHigh(byte& outPitch) const
+{
+    if (!mTail)
+    {
+        return false;
+    }
+
+    outPitch = 0;
+    const Cell* it = mTail;
+    for (byte i = 0; i < mSize; ++i)
+    {
+        if (it->note.pitch > outPitch)
+        {
+            outPitch = it->note.pitch;
+        }
+
+        if (it->prev)
+        {
+            it = it->prev;
+        }
+    }
+    return true;
+}
+
+/*! \brief Get the lowest pitched active note
+ This implements the Mono Low playing mode.
+ */
+template<byte Size>
+inline bool MidiNoteList<Size>::getLow(byte& outPitch) const
+{
+    if (!mTail)
+    {
+        return false;
+    }
+
+    outPitch = 0xff;
+    const Cell* it = mTail;
+    for (byte i = 0; i < mSize; ++i)
+    {
+        if (it->note.pitch < outPitch)
+        {
+            outPitch = it->note.pitch;
+        }
+
+        if (it->prev)
+        {
+            it = it->prev;
+        }
+    }
+    return true;
+}
+
+// -----------------------------------------------------------------------------
+
+template<byte Size>
+inline bool MidiNoteList<Size>::empty() const
+{
+    return mSize == 0;
+}
+
+/*! \brief Get the number of active notes.
+ */
+template<byte Size>
+inline byte MidiNoteList<Size>::size() const
+{
+    return mSize;
+}
+
+// -----------------------------------------------------------------------------
+// Private implementations, for internal use only.
+
+template<byte Size>
+inline typename MidiNoteList<Size>::Cell* MidiNoteList<Size>::getFirstEmptyCell()
+{
+    for (byte i = 0; i < Size; ++i)
+    {
+        if (mArray[i].active == false)
+        {
+            return mArray + i;
+        }
+    }
+    return 0;
+}
+
+template<byte Size>
+inline void MidiNoteList<Size>::print() const
+{
+//#ifndef NDEBUG
+//    AVR_DBG("Note List: [ ");
+//    if (mHead)
+//    {
+//        for (const Cell* it = mHead; it != 0; it = it->next)
+//        {
+//            AVR_DBG(it->note.pitch);
+//            if (it->next)
+//                AVR_DBG(" -> ");
+//        }
+//    }
+//    AVR_LOG(" ]");
+//#endif
+}
